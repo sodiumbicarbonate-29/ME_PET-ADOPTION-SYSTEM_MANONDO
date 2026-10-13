@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pet Adoption System</title>
+</head>
+<body>
+    <h2>Pet Adoption System</h2>
+
+    <h3>Add Pet</h3>
+    <input type="text" id="name" placeholder="Name">
+    <input type="text" id="species" placeholder="Species">
+    <input type="text" id="breed" placeholder="Breed">
+    <input type="number" id="age" placeholder="Age">
+    <button onclick="addPet()">Add</button>
+
+    <h3>Search Pet</h3>
+    <input type="number" id="search-id" placeholder="Enter Pet ID">
+    <button onclick="findPet()">Search</button>
+    <button onclick="loadPets()">View All</button>
+
+    <p id="message"></p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Species</th>
+                <th>Breed</th>
+                <th>Age</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="adoption-table"></tbody>
+    </table>
+    <script>
+        function renderTable(pets) {
+            const tbody = document.getElementById('adoption-table');
+            tbody.innerHTML = '';
+            
+            const rows = pets.map(pet => {
+                const status = (pet.adopted === false) ? 'AVAILABLE' : 'ADOPTED';
+                
+                return `<tr>
+                    <td>${pet.id}</td>
+                    <td>${pet.name}</td>
+                    <td>${pet.species}</td>
+                    <td>${pet.breed}</td>
+                    <td>${pet.age}</td>
+                    <td>${status}</td>
+                    <td><button onclick="deletePet(${pet.id})">Delete</button></td>
+                </tr>`;
+            }).join('');
+
+            tbody.innerHTML = rows;
+        }
+
+
+        function loadPets() {
+            fetch('/api/pet')
+                .then(res => res.json())
+                .then(pets => renderTable(pets))
+        }
+
+        function findPet() {
+            const id = document.getElementById('search-id').value
+
+            if (id === '') {
+                return loadPets()
+            }
+
+            fetch('/api/pet/' + id)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.message) {
+                        document.getElementById('message').textContent = data.message
+                        renderTable([])
+                    } else {
+                        document.getElementById('message').textContent = ''
+                        renderTable([data])
+                    }
+                })
+        }
+
+        function addPet() {
+            const newPet = {
+                name: document.getElementById('name').value,
+                species: document.getElementById('species').value,
+                breed: document.getElementById('breed').value,
+                age: document.getElementById('age').value,
+            }
+
+            fetch('/api/pet', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newPet)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.message) {
+                        document.getElementById('message').textContent = data.message
+                    } else {
+                        document.getElementById('message').textContent = 'Pet added'
+                    }
+                    loadPets()
+                })
+        }
+
+        function deletePet(id) {
+            fetch('/api/pet/' + id, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('message').textContent = data.message
+                    loadPets()
+                })
+        }
+
+        loadPets()
+    </script>
+</body>
+</html>
